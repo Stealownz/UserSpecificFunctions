@@ -77,7 +77,7 @@ namespace UserSpecificFunctions
             if (!args.Text.StartsWith("/") && !tsplr.mute && tsplr.IsLoggedIn && existsInDatabase(tsplr.UserID))
             {
                 TSPlayer.All.SendMessage(string.Format(TShock.Config.ChatFormat, tsplr.Group.Name, (getUserPrefix(tsplr.UserID) != null ? getUserPrefix(tsplr.UserID) : tsplr.Group.Prefix), tsplr.Name,
-                    (getUserSuffix(tsplr.UserID) != null ? getUserSuffix(tsplr.UserID) : tsplr.Group.Suffix), args.Text), 
+                    (getUserSuffix(tsplr.UserID) != null ? getUserSuffix(tsplr.UserID) : tsplr.Group.Suffix), args.Text),
                     useChatColor[tsplr.UserID] ? userColor : new Color(tsplr.Group.R, tsplr.Group.G, tsplr.Group.B));
 
                 args.Handled = true;
@@ -403,7 +403,7 @@ namespace UserSpecificFunctions
             }
             else
             {
-                db.Query("INSERT INTO UserSpecificFunctions (UserID, Prefix, Suffix, R, G, B) VALUES (@0, @1, @2, @3, @4, @5);", userid.ToString(), prefix, string.Empty, "", "", "");
+                db.Query("INSERT INTO UserSpecificFunctions (UserID, Prefix, Suffix, R, G, B) VALUES (@0, @1, @2, @3, @4, @5);", userid.ToString(), prefix, null, "", "", "");
             }
         }
 
@@ -415,7 +415,7 @@ namespace UserSpecificFunctions
             }
             else
             {
-                db.Query("INSERT INTO UserSpecificFunctions (UserID, Prefix, Suffix, R, G, B) VALUES (@0, @1, @2, @3, @4, @5);", userid.ToString(), string.Empty, suffix, "", "", "");
+                db.Query("INSERT INTO UserSpecificFunctions (UserID, Prefix, Suffix, R, G, B) VALUES (@0, @1, @2, @3, @4, @5);", userid.ToString(), null, suffix, "", "", "");
             }
         }
 
@@ -429,7 +429,7 @@ namespace UserSpecificFunctions
             }
             else
             {
-                db.Query("INSERT INTO UserSpecificFunctions (UserID, Prefix, Suffix, R, G, B) VALUES (@0, @1, @2, @3, @4, @5);", userid.ToString(), string.Empty, string.Empty, chatcolor[0], chatcolor[1], chatcolor[2]);
+                db.Query("INSERT INTO UserSpecificFunctions (UserID, Prefix, Suffix, R, G, B) VALUES (@0, @1, @2, @3, @4, @5);", userid.ToString(), null, null, chatcolor[0], chatcolor[1], chatcolor[2]);
             }
         }
 
