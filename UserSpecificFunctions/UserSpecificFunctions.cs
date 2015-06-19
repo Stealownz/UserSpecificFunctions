@@ -226,14 +226,14 @@ namespace UserSpecificFunctions
                                 return;
                             case "color":
                                 {
-                                    if (getUserColor(user.ID) == null)
+                                    if (!useChatColor[user.ID])
                                     {
                                         args.Player.SendErrorMessage("This user doesn't have a color to remove.");
                                         return;
                                     }
 
                                     removeUserColor(user.ID);
-                                    args.Player.SendSuccessMessage("\"{0}\"'s color has been removed.");
+                                    args.Player.SendSuccessMessage("\"{0}\"'s color has been removed.", user.Name);
                                 }
                                 return;
                         }
@@ -273,13 +273,13 @@ namespace UserSpecificFunctions
                                 return;
                             case "color":
                                 {
-                                    if (getUserColor(user.ID) == null)
+                                    if (!useChatColor[user.ID])
                                     {
                                         args.Player.SendErrorMessage("This user doesn't have a color to read.");
                                         return;
                                     }
 
-                                    args.Player.SendSuccessMessage("\"{0}\"'s color is: {1}", user.Name, getUserColor(user.ID));
+                                    args.Player.SendSuccessMessage("\"{0}\"'s color is: {1}", user.Name, userColor);
                                 }
                                 return;
                         }
