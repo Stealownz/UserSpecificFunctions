@@ -22,7 +22,7 @@ namespace UserSpecificFunctions
         public override string Name { get { return "UserSpecificFunctions"; } }
         public override string Author { get { return "Professor X"; } }
         public override string Description { get { return "Enables setting a prefix, suffix or a color for a specific player"; } }
-        public override Version Version { get { return new Version(2, 3, 0, 0); } }
+        public override Version Version { get { return new Version(2, 3, 0, 1); } }
 
         private IDbConnection db;
 
