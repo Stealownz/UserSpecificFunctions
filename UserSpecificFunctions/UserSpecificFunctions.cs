@@ -134,6 +134,12 @@ namespace UserSpecificFunctions
                             return;
                         }
 
+                        if (user.Name != args.Player.UserAccountName && !args.Player.Group.HasPermission("usf.set.other"))
+                        {
+                            args.Player.SendErrorMessage("You cannot set other players' prefixes.");
+                            return;
+                        }
+
                         string prefix = string.Join(" ", args.Parameters[2]);
                         setUserPrefix(user.ID, prefix);
                         args.Player.SendSuccessMessage("Set \"{0}\"'s prefix to: \"{1}\"", user.Name, prefix);
@@ -153,6 +159,12 @@ namespace UserSpecificFunctions
                             return;
                         }
 
+                        if (user.Name != args.Player.UserAccountName && !args.Player.Group.HasPermission("usf.set.other"))
+                        {
+                            args.Player.SendErrorMessage("You cannot set other players' suffixes.");
+                            return;
+                        }
+
                         string suffix = string.Join(" ", args.Parameters[2]);
                         setUserSuffix(user.ID, suffix);
                         args.Player.SendSuccessMessage("Set \"{0}\"'s suffix to: \"{1}\"", user.Name, suffix);
@@ -169,6 +181,12 @@ namespace UserSpecificFunctions
                         if (user == null)
                         {
                             args.Player.SendErrorMessage("No users under that name.");
+                            return;
+                        }
+
+                        if (user.Name != args.Player.UserAccountName && !args.Player.Group.HasPermission("usf.set.other"))
+                        {
+                            args.Player.SendErrorMessage("You cannot set other players' colors.");
                             return;
                         }
 
@@ -208,6 +226,12 @@ namespace UserSpecificFunctions
                                         return;
                                     }
 
+                                    if (user.Name != args.Player.UserAccountName && !args.Player.Group.HasPermission("usf.set.other"))
+                                    {
+                                        args.Player.SendErrorMessage("You cannot remove other players' prefixes.");
+                                        return;
+                                    }
+
                                     removeUserPrefix(user.ID);
                                     args.Player.SendSuccessMessage("\"{0}\"'s prefix has been removed.", user.Name, getUserPrefix(user.ID));
                                 }
@@ -220,6 +244,12 @@ namespace UserSpecificFunctions
                                         return;
                                     }
 
+                                    if (user.Name != args.Player.UserAccountName && !args.Player.Group.HasPermission("usf.set.other"))
+                                    {
+                                        args.Player.SendErrorMessage("You cannot remove other players' suffixes.");
+                                        return;
+                                    }
+
                                     removeUserSuffix(user.ID);
                                     args.Player.SendSuccessMessage("\"{0}\"'s suffix has been removed.", user.Name);
                                 }
@@ -229,6 +259,12 @@ namespace UserSpecificFunctions
                                     if (!useChatColor[user.ID])
                                     {
                                         args.Player.SendErrorMessage("This user doesn't have a color to remove.");
+                                        return;
+                                    }
+
+                                    if (user.Name != args.Player.UserAccountName && !args.Player.Group.HasPermission("usf.set.other"))
+                                    {
+                                        args.Player.SendErrorMessage("You cannot remove other players' prefixes.");
                                         return;
                                     }
 
