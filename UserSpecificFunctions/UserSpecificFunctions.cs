@@ -22,15 +22,11 @@ namespace UserSpecificFunctions
         public override string Name { get { return "UserSpecificFunctions"; } }
         public override string Author { get { return "Professor X"; } }
         public override string Description { get { return "Enables setting a prefix, suffix or a color for a specific player"; } }
-        public override Version Version { get { return new Version(2, 3, 0, 1); } }
+        public override Version Version { get { return new Version(2, 4, 0, 2); } }
 
         private IDbConnection db;
 
-        private Color userColor;
-
-        private bool[] useChatColor = new bool[255];
-
-        private System.Timers.Timer colorCheckTimer;
+        private Dictionary<int, USFPlayer> Players = new Dictionary<int, USFPlayer>();
 
         public UserSpecificFunctions(Main game)
             : base(game)
@@ -60,9 +56,7 @@ namespace UserSpecificFunctions
         private void OnInitialize(EventArgs args)
         {
             SetupDb();
-
-            colorCheckTimer = new System.Timers.Timer { AutoReset = true, Enabled = true, Interval = 1000 };
-            colorCheckTimer.Elapsed += colorCheckTimer_Elapsed;
+            loadDatabase();
 
             Commands.ChatCommands.Add(new Command("usf.set", USFCommand, "us"));
         }
@@ -74,30 +68,14 @@ namespace UserSpecificFunctions
 
             TSPlayer tsplr = TShock.Players[args.Who];
 
-            if (!args.Text.StartsWith("/") && !tsplr.mute && tsplr.IsLoggedIn && existsInDatabase(tsplr.UserID))
+            if (!args.Text.StartsWith("/") && !tsplr.mute && tsplr.IsLoggedIn && Players.ContainsKey(tsplr.UserID))
             {
-                TSPlayer.All.SendMessage(string.Format(TShock.Config.ChatFormat, tsplr.Group.Name, (getUserPrefix(tsplr.UserID) != null ? getUserPrefix(tsplr.UserID) : tsplr.Group.Prefix), tsplr.Name,
-                    (getUserSuffix(tsplr.UserID) != null ? getUserSuffix(tsplr.UserID) : tsplr.Group.Suffix), args.Text),
-                    useChatColor[tsplr.UserID] ? userColor : new Color(tsplr.Group.R, tsplr.Group.G, tsplr.Group.B));
+                TShock.Utils.Broadcast(string.Format(TShock.Config.ChatFormat, tsplr.Group.Name, Players[tsplr.UserID].Prefix != null
+                    ? Players[tsplr.UserID].Prefix : tsplr.Group.Prefix, tsplr.Name, Players[tsplr.UserID].Suffix != null ?
+                    Players[tsplr.UserID].Suffix : tsplr.Group.Suffix, args.Text), Players[tsplr.UserID].ChatColor != string.Format("000,000,000") ?
+                    new Color(Players[tsplr.UserID].R, Players[tsplr.UserID].G, Players[tsplr.UserID].B) : new Color(tsplr.Group.R, tsplr.Group.G, tsplr.Group.B));
 
                 args.Handled = true;
-            }
-        }
-        #endregion
-
-        #region colorCheckTimer_Elapsed
-        private void colorCheckTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs args)
-        {
-            foreach (TSPlayer tsplr in TShock.Players)
-            {
-                if (getUserColor(tsplr.UserID) != null)
-                {
-                    useChatColor[tsplr.UserID] = true;
-                    if (useChatColor[tsplr.UserID])
-                    {
-                        userColor = getUserColor(tsplr.UserID);
-                    }
-                }
             }
         }
         #endregion
@@ -117,6 +95,16 @@ namespace UserSpecificFunctions
             }
 
             User user = TShock.Users.GetUserByName(args.Parameters[1]);
+            if (user == null)
+            {
+                args.Player.SendErrorMessage("No users under that name.");
+                return;
+            }
+            if (user.Name != args.Player.UserAccountName && !args.Player.Group.HasPermission("usf.set.other"))
+            {
+                args.Player.SendErrorMessage("You cannot modify other players' stats.");
+                return;
+            }
 
             switch (args.Parameters[0].ToLower())
             {
@@ -125,18 +113,6 @@ namespace UserSpecificFunctions
                         if (args.Parameters.Count != 3)
                         {
                             args.Player.SendErrorMessage("Invalid syntax: {0}us prefix <player name> <prefix>", TShock.Config.CommandSpecifier);
-                            return;
-                        }
-
-                        if (user == null)
-                        {
-                            args.Player.SendErrorMessage("No users under that name.");
-                            return;
-                        }
-
-                        if (user.Name != args.Player.UserAccountName && !args.Player.Group.HasPermission("usf.set.other"))
-                        {
-                            args.Player.SendErrorMessage("You cannot set other players' prefixes.");
                             return;
                         }
 
@@ -153,18 +129,6 @@ namespace UserSpecificFunctions
                             return;
                         }
 
-                        if (user == null)
-                        {
-                            args.Player.SendErrorMessage("No users under that name.");
-                            return;
-                        }
-
-                        if (user.Name != args.Player.UserAccountName && !args.Player.Group.HasPermission("usf.set.other"))
-                        {
-                            args.Player.SendErrorMessage("You cannot set other players' suffixes.");
-                            return;
-                        }
-
                         string suffix = string.Join(" ", args.Parameters[2]);
                         setUserSuffix(user.ID, suffix);
                         args.Player.SendSuccessMessage("Set \"{0}\"'s suffix to: \"{1}\"", user.Name, suffix);
@@ -172,34 +136,31 @@ namespace UserSpecificFunctions
                     return;
                 case "color":
                     {
-                        if (args.Parameters.Count != 5)
+                        if (args.Parameters.Count != 3)
                         {
-                            args.Player.SendErrorMessage("Invalid syntax: {0}us color <player name> <r g b>", TShock.Config.CommandSpecifier);
+                            args.Player.SendErrorMessage("Invalid syntax! Proper syntax: {0}us color <player name> <rrr,ggg,bbb>", TShock.Config.CommandSpecifier);
                             return;
                         }
 
-                        if (user == null)
+                        string color = args.Parameters[2];
+                        string[] parts = color.Split(',');
+                        byte r;
+                        byte g;
+                        byte b;
+                        if (parts.Length == 3 && byte.TryParse(parts[0], out r) && byte.TryParse(parts[1], out g) && byte.TryParse(parts[2], out b))
                         {
-                            args.Player.SendErrorMessage("No users under that name.");
-                            return;
+                            try
+                            {
+                                setUserColor(user.ID, color);
+                                args.Player.SendSuccessMessage("Set \"{0}\"'s color to: \"{1}\"", user.Name, color);
+                            }
+                            catch (Exception ex)
+                            {
+                                args.Player.SendErrorMessage(ex.ToString());
+                            }
                         }
-
-                        if (user.Name != args.Player.UserAccountName && !args.Player.Group.HasPermission("usf.set.other"))
-                        {
-                            args.Player.SendErrorMessage("You cannot set other players' colors.");
-                            return;
-                        }
-
-                        int[] color = { (byte)255, (byte)255, (byte)255 };
-
-                        if (!int.TryParse(args.Parameters[2], out color[0]) || !int.TryParse(args.Parameters[3], out color[1]) || !int.TryParse(args.Parameters[4], out color[2]))
-                        {
-                            args.Player.SendErrorMessage("Invalid color: {0}us color <player name> <r g b>", TShock.Config.CommandSpecifier);
-                            return;
-                        }
-
-                        setUserColor(user.ID, color);
-                        args.Player.SendSuccessMessage("Set \"{0}\"'s color to: {1},{2},{3}", user.Name, color[0], color[1], color[2]);
+                        else
+                            args.Player.SendErrorMessage("Invalid color: {0}us color <player name> <rrr,ggg,bbb>", TShock.Config.CommandSpecifier);
                     }
                     return;
                 case "remove":
@@ -210,112 +171,42 @@ namespace UserSpecificFunctions
                             return;
                         }
 
-                        if (user == null)
-                        {
-                            args.Player.SendErrorMessage("No users under that name.");
-                            return;
-                        }
-
                         switch (args.Parameters[2].ToLower())
                         {
                             case "prefix":
                                 {
-                                    if (getUserPrefix(user.ID) == null)
+                                    if (Players[user.ID].Prefix == null)
                                     {
                                         args.Player.SendErrorMessage("This user doesn't have a prefix to remove.");
                                         return;
                                     }
 
-                                    if (user.Name != args.Player.UserAccountName && !args.Player.Group.HasPermission("usf.set.other"))
-                                    {
-                                        args.Player.SendErrorMessage("You cannot remove other players' prefixes.");
-                                        return;
-                                    }
-
                                     removeUserPrefix(user.ID);
-                                    args.Player.SendSuccessMessage("\"{0}\"'s prefix has been removed.", user.Name, getUserPrefix(user.ID));
+                                    args.Player.SendSuccessMessage("Removed {0}'s prefix.", user.Name);
                                 }
                                 return;
                             case "suffix":
                                 {
-                                    if (getUserSuffix(user.ID) == null)
+                                    if (Players[user.ID].Suffix == null)
                                     {
                                         args.Player.SendErrorMessage("This user doesn't have a suffix to remove.");
                                         return;
                                     }
 
-                                    if (user.Name != args.Player.UserAccountName && !args.Player.Group.HasPermission("usf.set.other"))
-                                    {
-                                        args.Player.SendErrorMessage("You cannot remove other players' suffixes.");
-                                        return;
-                                    }
-
                                     removeUserSuffix(user.ID);
-                                    args.Player.SendSuccessMessage("\"{0}\"'s suffix has been removed.", user.Name);
+                                    args.Player.SendSuccessMessage("Removed {0}'s suffix.", user.Name);
                                 }
                                 return;
                             case "color":
                                 {
-                                    if (!useChatColor[user.ID])
+                                    if (Players[user.ID].ChatColor == string.Format("000,000,000"))
                                     {
                                         args.Player.SendErrorMessage("This user doesn't have a color to remove.");
                                         return;
                                     }
 
-                                    if (user.Name != args.Player.UserAccountName && !args.Player.Group.HasPermission("usf.set.other"))
-                                    {
-                                        args.Player.SendErrorMessage("You cannot remove other players' prefixes.");
-                                        return;
-                                    }
-
                                     removeUserColor(user.ID);
-                                    args.Player.SendSuccessMessage("\"{0}\"'s color has been removed.", user.Name);
-                                }
-                                return;
-                        }
-                    }
-                    return;
-                case "read":
-                    {
-                        if (args.Parameters.Count != 3)
-                        {
-                            args.Player.SendErrorMessage("Invalid syntax: {0}us read <player name> <prefix/suffix/color>", TShock.Config.CommandSpecifier);
-                            return;
-                        }
-
-                        switch (args.Parameters[2].ToLower())
-                        {
-                            case "prefix":
-                                {
-                                    if (getUserPrefix(user.ID) == null)
-                                    {
-                                        args.Player.SendErrorMessage("This user doesn't have a prefix to read.");
-                                        return;
-                                    }
-
-                                    args.Player.SendSuccessMessage("\"{0}\"'s prefix is: {1}", user.Name, getUserPrefix(user.ID));
-                                }
-                                return;
-                            case "suffix":
-                                {
-                                    if (getUserSuffix(user.ID) == null)
-                                    {
-                                        args.Player.SendErrorMessage("This user doesn't have a suffix to read.");
-                                        return;
-                                    }
-
-                                    args.Player.SendSuccessMessage("\"{0}\"'s suffix is: {1}", user.Name, getUserSuffix(user.ID));
-                                }
-                                return;
-                            case "color":
-                                {
-                                    if (!useChatColor[user.ID])
-                                    {
-                                        args.Player.SendErrorMessage("This user doesn't have a color to read.");
-                                        return;
-                                    }
-
-                                    args.Player.SendSuccessMessage("\"{0}\"'s color is: {1}", user.Name, userColor);
+                                    args.Player.SendSuccessMessage("Removed {0}'s color.", user.Name);
                                 }
                                 return;
                         }
@@ -370,120 +261,85 @@ namespace UserSpecificFunctions
                 new SqlColumn("UserID", MySqlDbType.Int32) { Primary = true, Unique = true, Length = 6 },
                 new SqlColumn("Prefix", MySqlDbType.Text) { Length = 25 },
                 new SqlColumn("Suffix", MySqlDbType.Text) { Length = 25 },
-                new SqlColumn("R", MySqlDbType.Int32),
-                new SqlColumn("G", MySqlDbType.Int32),
-                new SqlColumn("B", MySqlDbType.Int32)));
+                new SqlColumn("ChatColor", MySqlDbType.Text)));
         }
 
-        private bool existsInDatabase(int userid)
+        private void loadDatabase()
         {
-            using (QueryResult reader = db.QueryReader("SELECT * FROM UserSpecificFunctions WHERE UserID=@0;", userid.ToString()))
-            {
-                if (reader.Read())
-                {
-                    return true;
-                }
-                else
-                    return false;
-            }
-        }
+            Players.Clear();
 
-        private string getUserPrefix(int userid)
-        {
-            using (QueryResult reader = db.QueryReader("SELECT Prefix FROM UserSpecificFunctions WHERE UserID=@0;", userid.ToString()))
+            using (QueryResult reader = db.QueryReader("SELECT * FROM UserSpecificFunctions"))
             {
-                if (reader.Read())
+                while (reader.Read())
                 {
-                    return reader.Get<string>("Prefix");
-                }
-                else
-                    return null;
-            }
-        }
+                    int userid = reader.Get<int>("UserID");
+                    string prefix = reader.Get<string>("Prefix");
+                    string suffix = reader.Get<string>("Suffix");
+                    string color = reader.Get<string>("ChatColor");
 
-        private string getUserSuffix(int userid)
-        {
-            using (QueryResult reader = db.QueryReader("SELECT Suffix FROM UserSpecificFunctions WHERE UserID=@0;", userid.ToString()))
-            {
-                if (reader.Read())
-                {
-                    return reader.Get<string>("Suffix");
-                }
-                else
-                    return null;
-            }
-        }
-
-        private Color getUserColor(int userid)
-        {
-            byte[] color = { (byte)255, (byte)255, (byte)255 };
-
-            using (QueryResult reader = db.QueryReader("SELECT * FROM UserSpecificFunctions WHERE UserID=@0;", userid.ToString()))
-            {
-                if (reader.Read())
-                {
-                    color[0] = (byte)reader.Get<int>("R");
-                    color[1] = (byte)reader.Get<int>("G");
-                    color[2] = (byte)reader.Get<int>("B");
+                    Players.Add(userid, new USFPlayer(userid, prefix, suffix, color));
                 }
             }
-
-            return new Color(color[0], color[1], color[2]);
         }
 
         private void setUserPrefix(int userid, string prefix)
         {
-            if (existsInDatabase(userid))
+            if (!Players.ContainsKey(userid))
             {
-                db.Query("UPDATE UserSpecificFunctions SET Prefix=@0 WHERE UserID=@1;", prefix, userid.ToString());
+                Players.Add(userid, new USFPlayer(userid, prefix, null, string.Format("000,000,000")));
+                db.Query("INSERT INTO UserSpecificFunctions (UserID, Prefix, Suffix, ChatColor) VALUES (@0, @1, @2, @3);", userid.ToString(), prefix, null, string.Format("000,000,000"));
             }
             else
             {
-                db.Query("INSERT INTO UserSpecificFunctions (UserID, Prefix, Suffix, R, G, B) VALUES (@0, @1, @2, @3, @4, @5);", userid.ToString(), prefix, null, "", "", "");
+                Players[userid].Prefix = prefix;
+                db.Query("UPDATE UserSpecificFunctions SET Prefix=@0 WHERE UserID=@1;", prefix, userid.ToString());
             }
         }
 
         private void setUserSuffix(int userid, string suffix)
         {
-            if (existsInDatabase(userid))
+            if (!Players.ContainsKey(userid))
             {
-                db.Query("UPDATE UserSpecificFunctions SET Suffix=@0 WHERE UserID=@1;", suffix, userid.ToString());
+                Players.Add(userid, new USFPlayer(userid, null, suffix, string.Format("000,000,000")));
+                db.Query("INSERT INTO UserSpecificFunctions (UserID, Prefix, Suffix, ChatColor) VALUES (@0, @1, @2, @3);", userid.ToString(), null, suffix, string.Format("000,000,000"));
             }
             else
             {
-                db.Query("INSERT INTO UserSpecificFunctions (UserID, Prefix, Suffix, R, G, B) VALUES (@0, @1, @2, @3, @4, @5);", userid.ToString(), null, suffix, "", "", "");
+                Players[userid].Suffix = suffix;
+                db.Query("UPDATE UserSpecificFunctions SET Suffix=@0 WHERE UserID=@1;", suffix, userid.ToString());
             }
         }
 
-        private void setUserColor(int userid, int[] chatcolor)
+        private void setUserColor(int userid, string chatcolor)
         {
-            if (existsInDatabase(userid))
+            if (!Players.ContainsKey(userid))
             {
-                db.Query("UPDATE UserSpecificFunctions SET R=@0 WHERE UserID=@1;", chatcolor[0], userid.ToString());
-                db.Query("UPDATE UserSpecificFunctions SET G=@0 WHERE UserID=@1;", chatcolor[1], userid.ToString());
-                db.Query("UPDATE UserSpecificFunctions SET B=@0 WHERE UserID=@1;", chatcolor[2], userid.ToString());
+                Players.Add(userid, new USFPlayer(userid, null, null, chatcolor));
+                db.Query("INSERT INTO UserSpecificFunctions (UserID, Prefix, Suffix, ChatColor) VALUES (@0, @1, @2, @3);", userid.ToString(), null, null, chatcolor);
             }
             else
             {
-                db.Query("INSERT INTO UserSpecificFunctions (UserID, Prefix, Suffix, R, G, B) VALUES (@0, @1, @2, @3, @4, @5);", userid.ToString(), null, null, chatcolor[0], chatcolor[1], chatcolor[2]);
+                Players[userid].ChatColor = chatcolor;
+                db.Query("UPDATE UserSpecificFunctions SET ChatColor=@0 WHERE UserID=@1;", chatcolor, userid.ToString());
             }
         }
 
         private void removeUserPrefix(int userid)
         {
+            Players[userid].Prefix = null;
             db.Query("UPDATE UserSpecificFunctions SET Prefix=null WHERE UserID=@0;", userid.ToString());
         }
 
         private void removeUserSuffix(int userid)
         {
+            Players[userid].Suffix = null;
             db.Query("UPDATE UserSpecificFunctions SET Suffix=null WHERE UserID=@0;", userid.ToString());
         }
 
         private void removeUserColor(int userid)
         {
-            db.Query("UPDATE UserSpecificFunctions SET R=null WHERE UserID=@0;", userid.ToString());
-            db.Query("UPDATE UserSpecificFunctions SET G=null WHERE UserID=@0;", userid.ToString());
-            db.Query("UPDATE UserSpecificFunctions SET B=null WHERE UserID=@0;", userid.ToString());
+            Players[userid].ChatColor = string.Format("000,000,000");
+            db.Query("UPDATE UserSpecificFunctions SET ChatColor=@0 WHERE UserID=@1;", string.Format("000,000,000"), userid.ToString());
         }
         #endregion
     }
