@@ -68,12 +68,12 @@ namespace UserSpecificFunctions
 
             TSPlayer tsplr = TShock.Players[args.Who];
 
-            if (!args.Text.StartsWith("/") && !tsplr.mute && tsplr.IsLoggedIn && Players.ContainsKey(tsplr.UserID))
+            if (!args.Text.StartsWith("/") && !tsplr.mute && tsplr.IsLoggedIn && Players.ContainsKey(tsplr.User.ID))
             {
-                TShock.Utils.Broadcast(string.Format(TShock.Config.ChatFormat, tsplr.Group.Name, Players[tsplr.UserID].Prefix != null
-                    ? Players[tsplr.UserID].Prefix : tsplr.Group.Prefix, tsplr.Name, Players[tsplr.UserID].Suffix != null ?
-                    Players[tsplr.UserID].Suffix : tsplr.Group.Suffix, args.Text), Players[tsplr.UserID].ChatColor != string.Format("000,000,000") ?
-                    new Color(Players[tsplr.UserID].R, Players[tsplr.UserID].G, Players[tsplr.UserID].B) : new Color(tsplr.Group.R, tsplr.Group.G, tsplr.Group.B));
+                TShock.Utils.Broadcast(string.Format(TShock.Config.ChatFormat, tsplr.Group.Name, Players[tsplr.User.ID].Prefix != null
+                    ? Players[tsplr.User.ID].Prefix : tsplr.Group.Prefix, tsplr.Name, Players[tsplr.User.ID].Suffix != null ?
+                    Players[tsplr.User.ID].Suffix : tsplr.Group.Suffix, args.Text), Players[tsplr.User.ID].ChatColor != string.Format("000,000,000") ?
+                    new Color(Players[tsplr.User.ID].R, Players[tsplr.User.ID].G, Players[tsplr.User.ID].B) : new Color(tsplr.Group.R, tsplr.Group.G, tsplr.Group.B));
 
                 args.Handled = true;
             }
@@ -100,7 +100,7 @@ namespace UserSpecificFunctions
                 args.Player.SendErrorMessage("No users under that name.");
                 return;
             }
-            if (user.Name != args.Player.UserAccountName && !args.Player.Group.HasPermission("usf.set.other"))
+            if (user.Name != args.Player.User.Name && !args.Player.Group.HasPermission("usf.set.other"))
             {
                 args.Player.SendErrorMessage("You cannot modify other players' stats.");
                 return;
