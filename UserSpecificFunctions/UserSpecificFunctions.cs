@@ -16,13 +16,13 @@ using MySql.Data.MySqlClient;
 
 namespace UserSpecificFunctions
 {
-    [ApiVersion(1, 19)]
+    [ApiVersion(1, 20)]
     public class UserSpecificFunctions : TerrariaPlugin
     {
         public override string Name { get { return "UserSpecificFunctions"; } }
         public override string Author { get { return "Professor X"; } }
         public override string Description { get { return "Enables setting a prefix, suffix or a color for a specific player"; } }
-        public override Version Version { get { return new Version(2, 5, 0, 0); } }
+        public override Version Version { get { return new Version(2, 5, 1, 0); } }
 
         private IDbConnection db;
 
