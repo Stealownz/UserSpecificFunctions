@@ -22,7 +22,7 @@ namespace UserSpecificFunctions
         public override string Name { get { return "UserSpecificFunctions"; } }
         public override string Author { get { return "Professor X"; } }
         public override string Description { get { return "Enables setting a prefix, suffix or a color for a specific player"; } }
-        public override Version Version { get { return new Version(2, 5, 1, 0); } }
+        public override Version Version { get { return new Version(2, 5, 1, 1); } }
 
         private IDbConnection db;
 
@@ -110,57 +110,91 @@ namespace UserSpecificFunctions
             {
                 case "prefix":
                     {
-                        if (args.Parameters.Count != 3)
+                        if (args.Parameters.Count == 3)
                         {
-                            args.Player.SendErrorMessage("Invalid syntax: {0}us prefix <player name> <prefix>", TShock.Config.CommandSpecifier);
+                            string prefix = string.Join(" ", args.Parameters[2]);
+                            setUserPrefix(user.ID, prefix);
+                            args.Player.SendSuccessMessage("Set \"{0}\"'s prefix to: \"{1}\"", user.Name, prefix);
+                        }
+                        else if (args.Parameters.Count == 2)
+                        {
+                            if (!Players.ContainsKey(user.ID) || Players[user.ID].Prefix == null)
+                            {
+                                args.Player.SendErrorMessage("\"{0}\" has no prefix to display.", user.Name);
+                            }
+                            else
+                            {
+                                args.Player.SendSuccessMessage("\"{0}\"'s prefix is: \"{1}\"", user.Name, Players[user.ID].Prefix);
+                            }
+                        }
+                        else
+                        {
+                            args.Player.SendErrorMessage("Invalid syntax: {0}us prefix <player name> [prefix]", TShock.Config.CommandSpecifier);
                             return;
                         }
-
-                        string prefix = string.Join(" ", args.Parameters[2]);
-                        setUserPrefix(user.ID, prefix);
-                        args.Player.SendSuccessMessage("Set \"{0}\"'s prefix to: \"{1}\"", user.Name, prefix);
                     }
                     return;
                 case "suffix":
                     {
-                        if (args.Parameters.Count != 3)
+                        if (args.Parameters.Count == 3)
                         {
-                            args.Player.SendErrorMessage("Invalid syntax: {0}us suffix <player name> <suffix>", TShock.Config.CommandSpecifier);
+                            string suffix = string.Join(" ", args.Parameters[2]);
+                            setUserSuffix(user.ID, suffix);
+                            args.Player.SendSuccessMessage("Set \"{0}\"'s suffix to: \"{1}\"", user.Name, suffix);
+                        }
+                        else if (args.Parameters.Count == 2)
+                        {
+                            if (!Players.ContainsKey(user.ID) || Players[user.ID].Suffix == null)
+                            {
+                                args.Player.SendErrorMessage("\"{0}\" has no suffix to display.", user.Name);
+                            }
+                            else
+                            {
+                                args.Player.SendSuccessMessage("\"{0}\"'s suffix is: \"{1}\"", user.Name, Players[user.ID].Suffix);
+                            }
+                        }
+                        else
+                        {
+                            args.Player.SendErrorMessage("Invalid syntax: {0}us suffix <player name> [suffix]", TShock.Config.CommandSpecifier);
                             return;
                         }
-
-                        string suffix = string.Join(" ", args.Parameters[2]);
-                        setUserSuffix(user.ID, suffix);
-                        args.Player.SendSuccessMessage("Set \"{0}\"'s suffix to: \"{1}\"", user.Name, suffix);
                     }
                     return;
                 case "color":
                     {
-                        if (args.Parameters.Count != 3)
+                        if (args.Parameters.Count == 3)
                         {
-                            args.Player.SendErrorMessage("Invalid syntax! Proper syntax: {0}us color <player name> <rrr,ggg,bbb>", TShock.Config.CommandSpecifier);
-                            return;
-                        }
-
-                        string color = args.Parameters[2];
-                        string[] parts = color.Split(',');
-                        byte r;
-                        byte g;
-                        byte b;
-                        if (parts.Length == 3 && byte.TryParse(parts[0], out r) && byte.TryParse(parts[1], out g) && byte.TryParse(parts[2], out b))
-                        {
-                            try
+                            string color = args.Parameters[2];
+                            string[] parts = color.Split(',');
+                            byte r;
+                            byte g;
+                            byte b;
+                            if (parts.Length == 3 && byte.TryParse(parts[0], out r) && byte.TryParse(parts[1], out g) && byte.TryParse(parts[2], out b))
                             {
-                                setUserColor(user.ID, color);
-                                args.Player.SendSuccessMessage("Set \"{0}\"'s color to: \"{1}\"", user.Name, color);
+                                try
+                                {
+                                    setUserColor(user.ID, color);
+                                    args.Player.SendSuccessMessage("Set \"{0}\"'s color to: \"{1}\"", user.Name, color);
+                                }
+                                catch (Exception ex)
+                                {
+                                    args.Player.SendErrorMessage(ex.ToString());
+                                }
                             }
-                            catch (Exception ex)
+                        }
+                        else if (args.Parameters.Count == 2)
+                        {
+                            if (!Players.ContainsKey(user.ID) || Players[user.ID].ChatColor == string.Format("000,000,000"))
                             {
-                                args.Player.SendErrorMessage(ex.ToString());
+                                args.Player.SendErrorMessage("\"{0}\" has no chat color to display.", user.Name);
+                            }
+                            else
+                            {
+                                args.Player.SendSuccessMessage("\"{0}\"'s chat color is: \"{1}\"", user.Name, Players[user.ID].ChatColor);
                             }
                         }
                         else
-                            args.Player.SendErrorMessage("Invalid color: {0}us color <player name> <rrr,ggg,bbb>", TShock.Config.CommandSpecifier);
+                            args.Player.SendErrorMessage("Invalid color: {0}us color <player name> [rrr,ggg,bbb]", TShock.Config.CommandSpecifier);
                     }
                     return;
                 case "remove":
@@ -175,7 +209,7 @@ namespace UserSpecificFunctions
                         {
                             case "prefix":
                                 {
-                                    if (Players[user.ID].Prefix == null)
+                                    if (!Players.ContainsKey(user.ID) || Players[user.ID].Prefix == null)
                                     {
                                         args.Player.SendErrorMessage("This user doesn't have a prefix to remove.");
                                         return;
@@ -187,7 +221,7 @@ namespace UserSpecificFunctions
                                 return;
                             case "suffix":
                                 {
-                                    if (Players[user.ID].Suffix == null)
+                                    if (!Players.ContainsKey(user.ID) || Players[user.ID].Suffix == null)
                                     {
                                         args.Player.SendErrorMessage("This user doesn't have a suffix to remove.");
                                         return;
@@ -199,7 +233,7 @@ namespace UserSpecificFunctions
                                 return;
                             case "color":
                                 {
-                                    if (Players[user.ID].ChatColor == string.Format("000,000,000"))
+                                    if (!Players.ContainsKey(user.ID) || Players[user.ID].ChatColor == string.Format("000,000,000"))
                                     {
                                         args.Player.SendErrorMessage("This user doesn't have a color to remove.");
                                         return;
