@@ -59,13 +59,14 @@ namespace UserSpecificFunctions {
         return;
 
       TSPlayer tsplr = TShock.Players[args.Who];
-      string prefix = Players[tsplr.User.ID].Prefix != null ? Players[tsplr.User.ID].Prefix : tsplr.Group.Prefix;
-      string suffix = Players[tsplr.User.ID].Suffix != null ? Players[tsplr.User.ID].Suffix : tsplr.Group.Suffix;
-      Color color = Players[tsplr.User.ID].ChatColor != string.Format("000,000,000") ?
-        new Color(Players[tsplr.User.ID].R, Players[tsplr.User.ID].G, Players[tsplr.User.ID].B) :
-        new Color(tsplr.Group.R, tsplr.Group.G, tsplr.Group.B);
 
       if (!args.Text.StartsWith("/") && !tsplr.mute && tsplr.IsLoggedIn && Players.ContainsKey(tsplr.User.ID)) {
+        string prefix = Players[tsplr.User.ID].Prefix != null ? Players[tsplr.User.ID].Prefix : tsplr.Group.Prefix;
+        string suffix = Players[tsplr.User.ID].Suffix != null ? Players[tsplr.User.ID].Suffix : tsplr.Group.Suffix;
+        Color color = Players[tsplr.User.ID].ChatColor != string.Format("000,000,000") ?
+          new Color(Players[tsplr.User.ID].R, Players[tsplr.User.ID].G, Players[tsplr.User.ID].B) :
+          new Color(tsplr.Group.R, tsplr.Group.G, tsplr.Group.B);
+        
         if (!TShock.Config.EnableChatAboveHeads) {
           TShock.Utils.Broadcast(string.Format(TShock.Config.ChatFormat, tsplr.Group.Name, prefix, tsplr.Name, suffix, args.Text), color);
         }
@@ -99,7 +100,7 @@ namespace UserSpecificFunctions {
       if (args.Parameters.Count < 1) {
         args.Player.SendErrorMessage("Invalid syntax! Proper syntax:");
         args.Player.SendErrorMessage("{0}us prefix <player name> <prefix>", TShock.Config.CommandSpecifier);
-        args.Player.SendErrorMessage("{0}us suffix <player name> <suffix>", TShock.Config.CommandSpecifier);
+        //args.Player.SendErrorMessage("{0}us suffix <player name> <suffix>", TShock.Config.CommandSpecifier);
         args.Player.SendErrorMessage("{0}us color <player name> <r g b>", TShock.Config.CommandSpecifier);
         args.Player.SendErrorMessage("{0}us remove <player name> <prefix/suffix/color>", TShock.Config.CommandSpecifier);
         args.Player.SendErrorMessage("{0}us read <player name> <prefix/suffix/color>", TShock.Config.CommandSpecifier);
@@ -138,27 +139,27 @@ namespace UserSpecificFunctions {
             }
           }
           return;
-        case "suffix":
-          {
-            if (args.Parameters.Count == 3) {
-              string suffix = string.Join(" ", args.Parameters[2]);
-              setUserSuffix(user.ID, suffix);
-              args.Player.SendSuccessMessage("Set \"{0}\"'s suffix to: \"{1}\"", user.Name, suffix);
-            }
-            else if (args.Parameters.Count == 2) {
-              if (!Players.ContainsKey(user.ID) || Players[user.ID].Suffix == null) {
-                args.Player.SendErrorMessage("\"{0}\" has no suffix to display.", user.Name);
-              }
-              else {
-                args.Player.SendSuccessMessage("\"{0}\"'s suffix is: \"{1}\"", user.Name, Players[user.ID].Suffix);
-              }
-            }
-            else {
-              args.Player.SendErrorMessage("Invalid syntax: {0}us suffix <player name> [suffix]", TShock.Config.CommandSpecifier);
-              return;
-            }
-          }
-          return;
+        //case "suffix":
+        //  {
+        //    if (args.Parameters.Count == 3) {
+        //      string suffix = string.Join(" ", args.Parameters[2]);
+        //      setUserSuffix(user.ID, suffix);
+        //      args.Player.SendSuccessMessage("Set \"{0}\"'s suffix to: \"{1}\"", user.Name, suffix);
+        //    }
+        //    else if (args.Parameters.Count == 2) {
+        //      if (!Players.ContainsKey(user.ID) || Players[user.ID].Suffix == null) {
+        //        args.Player.SendErrorMessage("\"{0}\" has no suffix to display.", user.Name);
+        //      }
+        //      else {
+        //        args.Player.SendSuccessMessage("\"{0}\"'s suffix is: \"{1}\"", user.Name, Players[user.ID].Suffix);
+        //      }
+        //    }
+        //    else {
+        //      args.Player.SendErrorMessage("Invalid syntax: {0}us suffix <player name> [suffix]", TShock.Config.CommandSpecifier);
+        //      return;
+        //    }
+        //  }
+        //  return;
         case "color":
           {
             if (args.Parameters.Count == 3) {
