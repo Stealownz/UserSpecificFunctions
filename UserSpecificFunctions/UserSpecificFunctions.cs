@@ -25,22 +25,31 @@ namespace UserSpecificFunctions {
     private IDbConnection db;
 
     private Dictionary<int, USFPlayer> Players = new Dictionary<int, USFPlayer>();
+    public static UserSpecificFunctions LatestInstance;
+
+    public static string permission_usfset = "usf.set";
+    public static string permission_usfsetprefix = "usf.set.prefix";
+    public static string permission_usfsetsuffix = "usf.set.suffix";
+    public static string permission_usfsetcolor = "usf.set.color";
+    public static string permission_usfsetother = "usf.set.other";
 
     public UserSpecificFunctions(Main game)
         : base(game) {
-
+      LatestInstance = this;
     }
 
     #region Initialize/Dispose
     public override void Initialize() {
       ServerApi.Hooks.GameInitialize.Register(this, OnInitialize);
       ServerApi.Hooks.ServerChat.Register(this, OnChat);
+      GeneralHooks.ReloadEvent += OnReload;
     }
 
     protected override void Dispose(bool disposing) {
       if (disposing) {
         ServerApi.Hooks.GameInitialize.Deregister(this, OnInitialize);
         ServerApi.Hooks.ServerChat.Deregister(this, OnChat);
+        GeneralHooks.ReloadEvent -= OnReload;
       }
       base.Dispose(disposing);
     }
@@ -52,6 +61,10 @@ namespace UserSpecificFunctions {
       loadDatabase();
 
       Commands.ChatCommands.Add(new Command("usf.set", USFCommand, "us"));
+    }
+
+    private void OnReload(ReloadEventArgs args) {
+      loadDatabase();
     }
 
     private void OnChat(ServerChatEventArgs args) {
@@ -97,13 +110,8 @@ namespace UserSpecificFunctions {
 
     #region Commands
     private void USFCommand(CommandArgs args) {
-      if (args.Parameters.Count < 1) {
-        args.Player.SendErrorMessage("Invalid syntax! Proper syntax:");
-        args.Player.SendErrorMessage("{0}us prefix <player name> <prefix>", TShock.Config.CommandSpecifier);
-        //args.Player.SendErrorMessage("{0}us suffix <player name> <suffix>", TShock.Config.CommandSpecifier);
-        args.Player.SendErrorMessage("{0}us color <player name> <r g b>", TShock.Config.CommandSpecifier);
-        args.Player.SendErrorMessage("{0}us remove <player name> <prefix/suffix/color>", TShock.Config.CommandSpecifier);
-        args.Player.SendErrorMessage("{0}us read <player name> <prefix/suffix/color>", TShock.Config.CommandSpecifier);
+      if (args.Parameters.Count < 2) {
+        USFCommandHelp(args);
         return;
       }
 
@@ -112,7 +120,7 @@ namespace UserSpecificFunctions {
         args.Player.SendErrorMessage("No users under that name.");
         return;
       }
-      if (user.Name != args.Player.User.Name && !args.Player.Group.HasPermission("usf.set.other")) {
+      if (user.Name != args.Player.User.Name && !args.Player.Group.HasPermission(permission_usfsetother)) {
         args.Player.SendErrorMessage("You cannot modify other players' stats.");
         return;
       }
@@ -120,6 +128,11 @@ namespace UserSpecificFunctions {
       switch (args.Parameters[0].ToLower()) {
         case "prefix":
           {
+            if (!args.Player.Group.HasPermission(permission_usfsetprefix)) {
+              args.Player.SendErrorMessage("You do not have access to this command.");
+              return;
+            }
+
             if (args.Parameters.Count == 3) {
               string prefix = string.Join(" ", args.Parameters[2]);
               setUserPrefix(user.ID, prefix);
@@ -139,29 +152,39 @@ namespace UserSpecificFunctions {
             }
           }
           return;
-        //case "suffix":
-        //  {
-        //    if (args.Parameters.Count == 3) {
-        //      string suffix = string.Join(" ", args.Parameters[2]);
-        //      setUserSuffix(user.ID, suffix);
-        //      args.Player.SendSuccessMessage("Set \"{0}\"'s suffix to: \"{1}\"", user.Name, suffix);
-        //    }
-        //    else if (args.Parameters.Count == 2) {
-        //      if (!Players.ContainsKey(user.ID) || Players[user.ID].Suffix == null) {
-        //        args.Player.SendErrorMessage("\"{0}\" has no suffix to display.", user.Name);
-        //      }
-        //      else {
-        //        args.Player.SendSuccessMessage("\"{0}\"'s suffix is: \"{1}\"", user.Name, Players[user.ID].Suffix);
-        //      }
-        //    }
-        //    else {
-        //      args.Player.SendErrorMessage("Invalid syntax: {0}us suffix <player name> [suffix]", TShock.Config.CommandSpecifier);
-        //      return;
-        //    }
-        //  }
-        //  return;
+        case "suffix":
+          {
+            if (!args.Player.Group.HasPermission(permission_usfsetsuffix)) {
+              args.Player.SendErrorMessage("You do not have access to this command.");
+              return;
+            }
+
+            if (args.Parameters.Count == 3) {
+              string suffix = string.Join(" ", args.Parameters[2]);
+              setUserSuffix(user.ID, suffix);
+              args.Player.SendSuccessMessage("Set \"{0}\"'s suffix to: \"{1}\"", user.Name, suffix);
+            }
+            else if (args.Parameters.Count == 2) {
+              if (!Players.ContainsKey(user.ID) || Players[user.ID].Suffix == null) {
+                args.Player.SendErrorMessage("\"{0}\" has no suffix to display.", user.Name);
+              }
+              else {
+                args.Player.SendSuccessMessage("\"{0}\"'s suffix is: \"{1}\"", user.Name, Players[user.ID].Suffix);
+              }
+            }
+            else {
+              args.Player.SendErrorMessage("Invalid syntax: {0}us suffix <player name> [suffix]", TShock.Config.CommandSpecifier);
+              return;
+            }
+          }
+          return;
         case "color":
           {
+            if (!args.Player.Group.HasPermission(permission_usfsetcolor)) {
+              args.Player.SendErrorMessage("You do not have access to this command.");
+              return;
+            }
+
             if (args.Parameters.Count == 3) {
               string color = args.Parameters[2];
               string[] parts = color.Split(',');
@@ -192,6 +215,11 @@ namespace UserSpecificFunctions {
           return;
         case "remove":
           {
+            if (!args.Player.Group.HasPermission(permission_usfset)) {
+              args.Player.SendErrorMessage("You do not have access to this command.");
+              return;
+            }
+
             if (args.Parameters.Count != 3) {
               args.Player.SendErrorMessage("Invalid syntax: {0}us remove <player name> <prefix/suffix/color>", TShock.Config.CommandSpecifier);
               return;
@@ -236,11 +264,7 @@ namespace UserSpecificFunctions {
           return;
         case "help":
           {
-            args.Player.SendInfoMessage("{0}us prefix <player name> <prefix>", TShock.Config.CommandSpecifier);
-            args.Player.SendInfoMessage("{0}us suffix <player name> <suffix>", TShock.Config.CommandSpecifier);
-            args.Player.SendInfoMessage("{0}us color <player name> <r g b>", TShock.Config.CommandSpecifier);
-            args.Player.SendInfoMessage("{0}us remove <player name> <prefix/suffix/color>", TShock.Config.CommandSpecifier);
-            args.Player.SendInfoMessage("{0}us read <player name> <prefix/suffix/color>", TShock.Config.CommandSpecifier);
+            USFCommandHelp(args);
           }
           return;
         default:
@@ -249,6 +273,18 @@ namespace UserSpecificFunctions {
           }
           return;
       }
+    }
+
+    private void USFCommandHelp(CommandArgs args) {
+      args.Player.SendErrorMessage("Invalid syntax! Proper syntax:");
+      if (args.Player.Group.HasPermission(permission_usfsetprefix))
+        args.Player.SendErrorMessage("{0}us prefix <player name> <prefix>", TShock.Config.CommandSpecifier);
+      if (args.Player.Group.HasPermission(permission_usfsetsuffix))
+        args.Player.SendErrorMessage("{0}us suffix <player name> <suffix>", TShock.Config.CommandSpecifier);
+      if (args.Player.Group.HasPermission(permission_usfsetcolor))
+        args.Player.SendErrorMessage("{0}us color <player name> <r g b>", TShock.Config.CommandSpecifier);
+      if (args.Player.Group.HasPermission(permission_usfset))
+        args.Player.SendErrorMessage("{0}us remove <player name> <prefix/suffix/color>", TShock.Config.CommandSpecifier);
     }
     #endregion
 
@@ -298,7 +334,7 @@ namespace UserSpecificFunctions {
       }
     }
 
-    private void setUserPrefix(int userid, string prefix) {
+    public void setUserPrefix(int userid, string prefix) {
       if (!Players.ContainsKey(userid)) {
         Players.Add(userid, new USFPlayer(userid, prefix, null, string.Format("000,000,000")));
         db.Query("INSERT INTO UserSpecificFunctions (UserID, Prefix, Suffix, ChatColor) VALUES (@0, @1, @2, @3);", userid.ToString(), prefix, null, string.Format("000,000,000"));
@@ -309,7 +345,7 @@ namespace UserSpecificFunctions {
       }
     }
 
-    private void setUserSuffix(int userid, string suffix) {
+    public void setUserSuffix(int userid, string suffix) {
       if (!Players.ContainsKey(userid)) {
         Players.Add(userid, new USFPlayer(userid, null, suffix, string.Format("000,000,000")));
         db.Query("INSERT INTO UserSpecificFunctions (UserID, Prefix, Suffix, ChatColor) VALUES (@0, @1, @2, @3);", userid.ToString(), null, suffix, string.Format("000,000,000"));
@@ -320,7 +356,7 @@ namespace UserSpecificFunctions {
       }
     }
 
-    private void setUserColor(int userid, string chatcolor) {
+    public void setUserColor(int userid, string chatcolor) {
       if (!Players.ContainsKey(userid)) {
         Players.Add(userid, new USFPlayer(userid, null, null, chatcolor));
         db.Query("INSERT INTO UserSpecificFunctions (UserID, Prefix, Suffix, ChatColor) VALUES (@0, @1, @2, @3);", userid.ToString(), null, null, chatcolor);
@@ -331,17 +367,17 @@ namespace UserSpecificFunctions {
       }
     }
 
-    private void removeUserPrefix(int userid) {
+    public void removeUserPrefix(int userid) {
       Players[userid].Prefix = null;
       db.Query("UPDATE UserSpecificFunctions SET Prefix=null WHERE UserID=@0;", userid.ToString());
     }
 
-    private void removeUserSuffix(int userid) {
+    public void removeUserSuffix(int userid) {
       Players[userid].Suffix = null;
       db.Query("UPDATE UserSpecificFunctions SET Suffix=null WHERE UserID=@0;", userid.ToString());
     }
 
-    private void removeUserColor(int userid) {
+    public void removeUserColor(int userid) {
       Players[userid].ChatColor = string.Format("000,000,000");
       db.Query("UPDATE UserSpecificFunctions SET ChatColor=@0 WHERE UserID=@1;", string.Format("000,000,000"), userid.ToString());
     }
