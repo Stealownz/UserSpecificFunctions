@@ -15,7 +15,7 @@ using Mono.Data.Sqlite;
 using MySql.Data.MySqlClient;
 
 namespace UserSpecificFunctions {
-  [ApiVersion(1, 20)]
+  [ApiVersion(1, 21)]
   public class UserSpecificFunctions : TerrariaPlugin {
     public override string Name { get { return "UserSpecificFunctions"; } }
     public override string Author { get { return "Professor X"; } }
@@ -79,7 +79,7 @@ namespace UserSpecificFunctions {
         Color color = Players[tsplr.User.ID].ChatColor != string.Format("000,000,000") ?
           new Color(Players[tsplr.User.ID].R, Players[tsplr.User.ID].G, Players[tsplr.User.ID].B) :
           new Color(tsplr.Group.R, tsplr.Group.G, tsplr.Group.B);
-        
+
         if (!TShock.Config.EnableChatAboveHeads) {
           TShock.Utils.Broadcast(string.Format(TShock.Config.ChatFormat, tsplr.Group.Name, prefix, tsplr.Name, suffix, args.Text), color);
         }
