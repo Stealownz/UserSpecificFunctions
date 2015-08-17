@@ -404,6 +404,39 @@ namespace UserSpecificFunctions {
       db.Query("UPDATE UserSpecificFunctions SET Suffix=null WHERE UserID=@0;", userid.ToString());
     }
 
+    public void removeAllPrefix(string prefix = null) {
+      if (string.IsNullOrEmpty(prefix)) {
+        for (int i = 0; i < Players.Count; i++) {
+          Players[i].Prefix = null;
+        }
+        db.Query("UPDATE UserSpecificFunctions SET Prefix=null");
+      }
+      else {
+        for (int i = 0; i < Players.Count; i++) {
+          if (Players[i].Prefix == prefix) {
+            Players[i].Prefix = null;
+          }
+        }
+        db.Query("UPDATE UserSpecificFunctions SET Prefix=null WHERE Prefix=@0;", prefix);
+      }
+    }
+
+    public void removeAllSuffix(string suffix = null) {
+      if (string.IsNullOrEmpty(suffix)) {
+        for (int i = 0; i < Players.Count; i++) {
+          Players[i].Suffix = null;
+        }
+        db.Query("UPDATE UserSpecificFunctions SET Suffix=null");
+      } else {
+        for (int i = 0; i < Players.Count; i++) {
+          if (Players[i].Suffix == suffix) {
+            Players[i].Suffix = null;
+          }
+        }
+        db.Query("UPDATE UserSpecificFunctions SET Suffix=null WHERE Suffix=@0;", suffix);
+      }
+    }
+
     public void removeUserColor(int userid) {
       Players[userid].ChatColor = string.Format("000,000,000");
       db.Query("UPDATE UserSpecificFunctions SET ChatColor=@0 WHERE UserID=@1;", string.Format("000,000,000"), userid.ToString());
