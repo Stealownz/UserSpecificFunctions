@@ -23,7 +23,7 @@ namespace UserSpecificFunctions {
     public override Version Version { get { return new Version(2, 5, 1, 1); } }
 
     private IDbConnection db;
-
+    private static Config Config = new Config();
     private Dictionary<int, USFPlayer> Players = new Dictionary<int, USFPlayer>();
     public static UserSpecificFunctions LatestInstance;
 
@@ -60,11 +60,19 @@ namespace UserSpecificFunctions {
       SetupDb();
       loadDatabase();
 
+      if (File.Exists(Path.Combine(TShock.SavePath, "USF.json")))
+        Config = Config.Read(Path.Combine(TShock.SavePath, "USF.json"));
+      Config.Write(Path.Combine(TShock.SavePath, "USF.json"));
+
       Commands.ChatCommands.Add(new Command("usf.set", USFCommand, "us"));
     }
 
     private void OnReload(ReloadEventArgs args) {
       loadDatabase();
+
+      if (File.Exists(Path.Combine(TShock.SavePath, "USF.json")))
+        Config = Config.Read(Path.Combine(TShock.SavePath, "USF.json"));
+      Config.Write(Path.Combine(TShock.SavePath, "USF.json"));
     }
 
     private void OnChat(ServerChatEventArgs args) {
@@ -228,6 +236,11 @@ namespace UserSpecificFunctions {
             switch (args.Parameters[2].ToLower()) {
               case "prefix":
                 {
+                  if (!args.Player.Group.HasPermission(permission_usfsetprefix)) {
+                    args.Player.SendErrorMessage("You do not have access to this command.");
+                    return;
+                  }
+
                   if (!Players.ContainsKey(user.ID) || Players[user.ID].Prefix == null) {
                     args.Player.SendErrorMessage("This user doesn't have a prefix to remove.");
                     return;
@@ -239,6 +252,11 @@ namespace UserSpecificFunctions {
                 return;
               case "suffix":
                 {
+                  if (!args.Player.Group.HasPermission(permission_usfsetsuffix)) {
+                    args.Player.SendErrorMessage("You do not have access to this command.");
+                    return;
+                  }
+
                   if (!Players.ContainsKey(user.ID) || Players[user.ID].Suffix == null) {
                     args.Player.SendErrorMessage("This user doesn't have a suffix to remove.");
                     return;
@@ -250,6 +268,11 @@ namespace UserSpecificFunctions {
                 return;
               case "color":
                 {
+                  if (!args.Player.Group.HasPermission(permission_usfsetcolor)) {
+                    args.Player.SendErrorMessage("You do not have access to this command.");
+                    return;
+                  }
+
                   if (!Players.ContainsKey(user.ID) || Players[user.ID].ChatColor == string.Format("000,000,000")) {
                     args.Player.SendErrorMessage("This user doesn't have a color to remove.");
                     return;
@@ -335,6 +358,8 @@ namespace UserSpecificFunctions {
     }
 
     public void setUserPrefix(int userid, string prefix) {
+      prefix = string.Format(Config.prefixformat, prefix);
+
       if (!Players.ContainsKey(userid)) {
         Players.Add(userid, new USFPlayer(userid, prefix, null, string.Format("000,000,000")));
         db.Query("INSERT INTO UserSpecificFunctions (UserID, Prefix, Suffix, ChatColor) VALUES (@0, @1, @2, @3);", userid.ToString(), prefix, null, string.Format("000,000,000"));
@@ -346,6 +371,8 @@ namespace UserSpecificFunctions {
     }
 
     public void setUserSuffix(int userid, string suffix) {
+      suffix = string.Format(Config.suffixformat, suffix);
+
       if (!Players.ContainsKey(userid)) {
         Players.Add(userid, new USFPlayer(userid, null, suffix, string.Format("000,000,000")));
         db.Query("INSERT INTO UserSpecificFunctions (UserID, Prefix, Suffix, ChatColor) VALUES (@0, @1, @2, @3);", userid.ToString(), null, suffix, string.Format("000,000,000"));
