@@ -143,6 +143,11 @@ namespace UserSpecificFunctions {
 
             if (args.Parameters.Count == 3) {
               string prefix = string.Join(" ", args.Parameters[2]);
+              if (prefix.Length > Config.maxLength) {
+                args.Player.SendErrorMessage("Prefix is too long, max: " + Config.maxLength);
+                return;
+              }
+
               setUserPrefix(user.ID, prefix);
               args.Player.SendSuccessMessage("Set \"{0}\"'s prefix to: \"{1}\"", user.Name, prefix);
             }
@@ -169,6 +174,11 @@ namespace UserSpecificFunctions {
 
             if (args.Parameters.Count == 3) {
               string suffix = string.Join(" ", args.Parameters[2]);
+              if (suffix.Length > Config.maxLength) {
+                args.Player.SendErrorMessage("Suffix is too long, max: " + Config.maxLength);
+                return;
+              }
+
               setUserSuffix(user.ID, suffix);
               args.Player.SendSuccessMessage("Set \"{0}\"'s suffix to: \"{1}\"", user.Name, suffix);
             }
@@ -221,6 +231,7 @@ namespace UserSpecificFunctions {
               args.Player.SendErrorMessage("Invalid color: {0}us color <player name> [rrr,ggg,bbb]", TShock.Config.CommandSpecifier);
           }
           return;
+        case "clear":
         case "remove":
           {
             if (!args.Player.Group.HasPermission(permission_usfset)) {
@@ -305,7 +316,7 @@ namespace UserSpecificFunctions {
       if (args.Player.Group.HasPermission(permission_usfsetsuffix))
         args.Player.SendErrorMessage("{0}us suffix <player name> <suffix>", TShock.Config.CommandSpecifier);
       if (args.Player.Group.HasPermission(permission_usfsetcolor))
-        args.Player.SendErrorMessage("{0}us color <player name> <r g b>", TShock.Config.CommandSpecifier);
+        args.Player.SendErrorMessage("{0}us color <player name> <rrr,ggg,bbb>", TShock.Config.CommandSpecifier);
       if (args.Player.Group.HasPermission(permission_usfset))
         args.Player.SendErrorMessage("{0}us remove <player name> <prefix/suffix/color>", TShock.Config.CommandSpecifier);
     }

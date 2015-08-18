@@ -4,8 +4,9 @@ using Newtonsoft.Json;
 
 namespace UserSpecificFunctions {
   public class Config {
+    public int maxLength = 6;
     public string prefixformat = "[{0}] ";
-    public string suffixformat = " {{0}}";
+    public string suffixformat = " {{{0}}}";
 
     public void Write(string path) {
       using (var fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Write)) {
