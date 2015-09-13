@@ -15,7 +15,7 @@ using Mono.Data.Sqlite;
 using MySql.Data.MySqlClient;
 
 namespace UserSpecificFunctions {
-  [ApiVersion(1, 21)]
+  [ApiVersion(1, 22)]
   public class UserSpecificFunctions : TerrariaPlugin {
     public override string Name { get { return "UserSpecificFunctions"; } }
     public override string Author { get { return "Professor X"; } }
@@ -417,15 +417,16 @@ namespace UserSpecificFunctions {
 
     public void removeAllPrefix(string prefix = null) {
       if (string.IsNullOrEmpty(prefix)) {
-        for (int i = 0; i < Players.Count; i++) {
-          Players[i].Prefix = null;
+        foreach (KeyValuePair<int, USFPlayer> kvp in Players) {
+          kvp.Value.Prefix = null;
         }
         db.Query("UPDATE UserSpecificFunctions SET Prefix=null");
       }
       else {
         for (int i = 0; i < Players.Count; i++) {
-          if (Players[i].Prefix == prefix) {
-            Players[i].Prefix = null;
+          prefix = string.Format(Config.prefixformat, prefix);
+          foreach (int id in Players.Where(x => x.Value.Prefix == prefix).Select(x => x.Key)) {
+            Players[id].Prefix = null;
           }
         }
         db.Query("UPDATE UserSpecificFunctions SET Prefix=null WHERE Prefix=@0;", prefix);
@@ -434,14 +435,15 @@ namespace UserSpecificFunctions {
 
     public void removeAllSuffix(string suffix = null) {
       if (string.IsNullOrEmpty(suffix)) {
-        for (int i = 0; i < Players.Count; i++) {
-          Players[i].Suffix = null;
+        foreach (KeyValuePair<int, USFPlayer> kvp in Players) {
+          kvp.Value.Suffix = null;
         }
         db.Query("UPDATE UserSpecificFunctions SET Suffix=null");
       } else {
         for (int i = 0; i < Players.Count; i++) {
-          if (Players[i].Suffix == suffix) {
-            Players[i].Suffix = null;
+          suffix = string.Format(Config.suffixformat, suffix);
+          foreach (int id in Players.Where(x => x.Value.Suffix == suffix).Select(x => x.Key)) {
+            Players[id].Suffix = null;
           }
         }
         db.Query("UPDATE UserSpecificFunctions SET Suffix=null WHERE Suffix=@0;", suffix);
