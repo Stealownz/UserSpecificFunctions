@@ -40,14 +40,14 @@ namespace UserSpecificFunctions {
 
     #region Initialize/Dispose
     public override void Initialize() {
-      ServerApi.Hooks.GameInitialize.Register(this, OnInitialize);
+      ServerApi.Hooks.GamePostInitialize.Register(this, OnInitialize);
       ServerApi.Hooks.ServerChat.Register(this, OnChat);
       GeneralHooks.ReloadEvent += OnReload;
     }
 
     protected override void Dispose(bool disposing) {
       if (disposing) {
-        ServerApi.Hooks.GameInitialize.Deregister(this, OnInitialize);
+        ServerApi.Hooks.GamePostInitialize.Deregister(this, OnInitialize);
         ServerApi.Hooks.ServerChat.Deregister(this, OnChat);
         GeneralHooks.ReloadEvent -= OnReload;
       }
@@ -347,7 +347,7 @@ namespace UserSpecificFunctions {
 
       SqlTableCreator sqlcreator = new SqlTableCreator(db, db.GetSqlType() == SqlType.Sqlite ? (IQueryBuilder)new SqliteQueryCreator() : new MysqlQueryCreator());
       sqlcreator.EnsureTableStructure(new SqlTable("UserSpecificFunctions",
-          new SqlColumn("UserID", MySqlDbType.Int32) { Primary = true, Unique = true, Length = 6 },
+          new SqlColumn("UserID", MySqlDbType.Int32) { Primary = true, Unique = true },
           new SqlColumn("Prefix", MySqlDbType.Text) { Length = 25 },
           new SqlColumn("Suffix", MySqlDbType.Text) { Length = 25 },
           new SqlColumn("ChatColor", MySqlDbType.Text)));
